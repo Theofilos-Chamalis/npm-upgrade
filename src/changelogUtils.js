@@ -49,6 +49,34 @@ async function urlExists(url) {
   }
 }
 
+/** Like Bluebird.any: resolve with the first existing URL, or null if none exist. */
+function firstExistingUrl(urls) {
+  return new Promise(resolve => {
+    if (!urls.length) {
+      resolve(null);
+      return;
+    }
+
+    let remaining = urls.length;
+    let settled = false;
+
+    urls.forEach(url => {
+      urlExists(url).then(exists => {
+        if (exists && !settled) {
+          settled = true;
+          resolve(url);
+          return;
+        }
+
+        remaining -= 1;
+        if (!settled && remaining === 0) {
+          resolve(null);
+        }
+      });
+    });
+  });
+}
+
 export async function findModuleChangelogUrl(moduleName, remoteChangelogUrlsDbUrl = DEFAULT_REMOTE_CHANGELOGS_DB_URL) {
   let changelogUrls;
 
@@ -74,12 +102,12 @@ export async function findModuleChangelogUrl(moduleName, remoteChangelogUrlsDbUr
     const {fileUrlBuilder, releasesPageUrl} = getRepositoryInfo(repository.url) || {};
 
     if (fileUrlBuilder) {
-      // Prefer CHANGELOG.md and stop at the first hit; avoid downloading full file bodies.
-      for (const filename of COMMON_CHANGELOG_FILES) {
-        const url = fileUrlBuilder(filename);
-        if (await urlExists(url)) {
-          return url;
-        }
+      // Probe common changelog filenames in parallel (same as before), but with HEAD
+      // so we don't download full file bodies.
+      const possibleChangelogUrls = COMMON_CHANGELOG_FILES.map(fileUrlBuilder);
+      const foundUrl = await firstExistingUrl(possibleChangelogUrls);
+      if (foundUrl) {
+        return foundUrl;
       }
     }
 

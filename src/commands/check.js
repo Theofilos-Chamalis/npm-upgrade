@@ -101,8 +101,7 @@ export const handler = catchAsyncError(async opts => {
   const latestVersions = await ncu.queryVersions(currentVersions, {
     target: versionTarget,
     timeout: 0,
-    concurrency: 8,
-    loglevel: 'silent'
+    concurrency: 8
   });
   const upgradedVersions = ncu.upgradeDependencies(currentVersions, latestVersions);
 

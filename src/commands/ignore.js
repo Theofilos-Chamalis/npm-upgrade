@@ -7,9 +7,29 @@ import {strong, attention} from '../cliStyles';
 
 export const command = 'ignore <command>';
 export const describe = 'Manage ignored modules';
+
+function load(modulePath) {
+  // eslint-disable-next-line global-require
+  return require(modulePath);
+}
+
 export const builder = yargs =>
   yargs
-    .commandDir('ignore')
+    .command({
+      command: 'list',
+      describe: 'Show the list of ignored modules',
+      handler: argv => load('./ignore/list').handler(argv)
+    })
+    .command({
+      command: 'add [module]',
+      describe: 'Add module to ignored list',
+      handler: argv => load('./ignore/add').handler(argv)
+    })
+    .command({
+      command: 'reset [modules...]',
+      describe: 'Reset ignored modules',
+      handler: argv => load('./ignore/reset').handler(argv)
+    })
     .demandCommand(1, 'Provide valid command');
 
 export function createIgnoredModulesTable(ignoredModulesConfig, moduleNames = _.keys(ignoredModulesConfig)) {
